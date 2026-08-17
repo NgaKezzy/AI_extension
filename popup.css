@@ -1,0 +1,9 @@
+:root { font-family: system-ui, -apple-system, sans-serif; color: #172033; }
+body { margin: 0; width: 320px; background: #f5f7fb; }
+main { padding: 18px; }
+h1 { margin: 0 0 8px; font-size: 20px; }
+p { line-height: 1.45; }
+button { width: 100%; border: 0; border-radius: 10px; padding: 11px 14px; margin-top: 8px; background: #315efb; color: white; font-weight: 700; cursor: pointer; }
+button.secondary { background: #e7ebf5; color: #172033; }
+button:disabled { opacity: .6; cursor: wait; }
+#status { min-height: 20px; margin-bottom: 0; color: #526078; font-size: 13px; }

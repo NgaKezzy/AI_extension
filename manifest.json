@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "AI Study Helper",
+  "version": "1.0.0",
+  "description": "Phân tích câu hỏi trắc nghiệm bằng Gemini và hiển thị gợi ý, không tự chọn đáp án.",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AI Study Helper"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

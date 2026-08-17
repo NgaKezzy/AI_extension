@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cài đặt AI Study Helper</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main>
+      <h1>Cài đặt AI Study Helper</h1>
+      <p>Gemini API key được lưu cục bộ trong hồ sơ Chrome này. Không chia sẻ thư mục profile hoặc bản sao cấu hình trình duyệt.</p>
+      <label for="apiKey">Gemini API key</label>
+      <input id="apiKey" type="password" autocomplete="off" placeholder="Nhập API key từ Google AI Studio">
+      <label for="model">Model</label>
+      <div class="model-row">
+        <select id="model">
+          <option value="gemini-3.7-flash">gemini-3.7-flash</option>
+        </select>
+        <button id="refreshModels" class="secondary" type="button">Tải danh sách model</button>
+      </div>
+      <small>Danh sách được lấy trực tiếp từ Gemini API theo quyền của API key này.</small>
+      <div class="actions">
+        <button id="save" type="button">Lưu cài đặt</button>
+        <button id="clear" class="danger" type="button">Xóa API key</button>
+      </div>
+      <p id="status" role="status"></p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

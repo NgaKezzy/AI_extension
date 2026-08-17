@@ -1,0 +1,123 @@
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+chrome.runtime.onInstalled.addListener(async () => {
+  const { geminiModel } = await chrome.storage.local.get("geminiModel");
+  if (!geminiModel || geminiModel === "gemini-2.5-flash") {
+    await chrome.storage.local.set({ geminiModel: "gemini-3.7-flash" });
+  }
+});
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "LIST_GEMINI_MODELS") {
+    listGeminiModels(message.apiKey)
+      .then((models) => sendResponse({ ok: true, models }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type !== "ANALYZE_QUESTIONS") return;
+
+  analyzeQuestions(message.questions)
+    .then((result) => sendResponse({ ok: true, result }))
+    .catch((error) => sendResponse({ ok: false, error: error.message }));
+
+  return true;
+});
+
+async function listGeminiModels(providedApiKey) {
+  const stored = await chrome.storage.local.get("geminiApiKey");
+  const apiKey = providedApiKey?.trim() || stored.geminiApiKey;
+  if (!apiKey) throw new Error("Hãy nhập Gemini API key trước.");
+
+  const response = await fetch(`${GEMINI_BASE_URL}?pageSize=1000`, {
+    headers: { "x-goog-api-key": apiKey }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || `Không thể tải danh sách model (${response.status}).`);
+  }
+
+  return (payload.models || [])
+    .filter((model) => model.supportedGenerationMethods?.includes("generateContent"))
+    .map((model) => ({
+      id: String(model.name || "").replace(/^models\//, ""),
+      label: model.displayName || model.name
+    }))
+    .filter((model) => model.id)
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+async function analyzeQuestions(questions) {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error("Không tìm thấy câu hỏi nào trên trang.");
+  }
+
+  const { geminiApiKey, geminiModel = "gemini-3.7-flash" } =
+    await chrome.storage.local.get(["geminiApiKey", "geminiModel"]);
+
+  if (!geminiApiKey) {
+    throw new Error("Bạn chưa cấu hình Gemini API key. Hãy mở Cài đặt của extension.");
+  }
+
+  const resolvedModel = await resolveModelId(geminiModel, geminiApiKey);
+  const model = encodeURIComponent(resolvedModel);
+  const response = await fetch(`${GEMINI_BASE_URL}/${model}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": geminiApiKey
+    },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: [
+          "Bạn là trợ giảng tiếng Việt.",
+          "Hãy giải từng câu hỏi dựa trên nội dung được cung cấp.",
+          "Các lựa chọn được đánh thứ tự A, B, C, D, E theo đúng thứ tự trong mảng choices.",
+          "Chỉ trả lời mỗi câu trên một dòng theo mẫu: Câu 1: B.",
+          "Không chép lại đáp án, không giải thích, không dùng Markdown và không thêm lời mở đầu hay kết luận.",
+          "Nếu thiếu dữ kiện hoặc không xác định được, ghi: Câu 1: Không chắc chắn."
+        ].join(" ") }]
+      },
+      contents: [{
+        role: "user",
+        parts: [{ text: JSON.stringify(questions, null, 2) }]
+      }],
+      generationConfig: {
+        temperature: 0.2
+      }
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = payload?.error?.message || `Gemini API trả về lỗi ${response.status}.`;
+    throw new Error(detail);
+  }
+
+  const text = extractGeminiText(payload);
+  if (!text) throw new Error("API không trả về nội dung có thể hiển thị.");
+  return text;
+}
+
+async function resolveModelId(configuredModel, apiKey) {
+  if (configuredModel !== "gemini-3.7-flash") return configuredModel;
+  try {
+    const models = await listGeminiModels(apiKey);
+    const match = models.find((model) => {
+      const value = `${model.id} ${model.label}`.toLowerCase();
+      return value.includes("3.7") && value.includes("flash");
+    });
+    return match?.id || configuredModel;
+  } catch {
+    return configuredModel;
+  }
+}
+
+function extractGeminiText(payload) {
+  return (payload.candidates || [])
+    .flatMap((candidate) => candidate?.content?.parts || [])
+    .filter((part) => typeof part.text === "string")
+    .map((part) => part.text)
+    .join("\n")
+    .trim();
+}
