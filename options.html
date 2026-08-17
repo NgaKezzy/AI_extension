@@ -8,23 +8,56 @@
   </head>
   <body>
     <main>
-      <h1>Cài đặt AI Study Helper</h1>
-      <p>Gemini API key được lưu cục bộ trong hồ sơ Chrome này. Không chia sẻ thư mục profile hoặc bản sao cấu hình trình duyệt.</p>
-      <label for="apiKey">Gemini API key</label>
-      <input id="apiKey" type="password" autocomplete="off" placeholder="Nhập API key từ Google AI Studio">
-      <label for="model">Model</label>
-      <div class="model-row">
-        <select id="model">
-          <option value="">Nhập API key để tải model</option>
-        </select>
-        <button id="refreshModels" class="secondary" type="button">Tải danh sách model</button>
-      </div>
-      <small>Danh sách được lấy trực tiếp từ Gemini API theo quyền của API key này.</small>
-      <div class="actions">
-        <button id="save" type="button">Lưu cài đặt</button>
+      <header class="page-header">
+        <img src="icons/icon128.png" alt="" width="64" height="64">
+        <div>
+          <p class="eyebrow">AI STUDY HELPER</p>
+          <h1>Cài đặt trợ lý</h1>
+          <p class="subtitle">Kết nối Gemini và chọn model phù hợp cho việc phân tích bài học.</p>
+        </div>
+      </header>
+
+      <section class="settings-card">
+        <div class="section-heading">
+          <span class="step">1</span>
+          <div>
+            <h2>Kết nối Gemini API</h2>
+            <p>Key chỉ được lưu cục bộ trong hồ sơ Chrome này.</p>
+          </div>
+          <a class="help-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Lấy API key ↗</a>
+        </div>
+        <label for="apiKey">Gemini API key</label>
+        <div class="key-row">
+          <input id="apiKey" type="password" autocomplete="off" placeholder="Dán API key từ Google AI Studio">
+          <button id="toggleKey" class="icon-button" type="button" aria-label="Hiện API key" title="Hiện API key">Hiện</button>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <div class="section-heading">
+          <span class="step">2</span>
+          <div>
+            <h2>Chọn model AI</h2>
+            <p>Extension tự ưu tiên model Pro mạnh và mới nhất.</p>
+          </div>
+        </div>
+        <label for="model">Model đang sử dụng</label>
+        <div class="model-row">
+          <select id="model">
+            <option value="">Nhập API key để tải model</option>
+          </select>
+          <button id="refreshModels" class="secondary" type="button"><span aria-hidden="true">↻</span> Tải lại</button>
+        </div>
+        <small>Danh sách model được lấy trực tiếp từ Gemini API theo quyền của key.</small>
+      </section>
+
+      <div id="status" class="status" role="status"></div>
+
+      <footer class="actions">
+        <button id="save" class="primary" type="button">Lưu cài đặt</button>
         <button id="clear" class="danger" type="button">Xóa API key</button>
-      </div>
-      <p id="status" role="status"></p>
+        <span class="security-note">🔒 Không chia sẻ API key với người khác</span>
+      </footer>
     </main>
     <script src="options.js"></script>
   </body>

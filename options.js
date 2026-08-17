@@ -2,8 +2,17 @@ const apiKeyInput = document.querySelector("#apiKey");
 const modelInput = document.querySelector("#model");
 const status = document.querySelector("#status");
 const refreshButton = document.querySelector("#refreshModels");
+const toggleKeyButton = document.querySelector("#toggleKey");
 let inputTimer;
 let loadSequence = 0;
+
+toggleKeyButton.addEventListener("click", () => {
+  const reveal = apiKeyInput.type === "password";
+  apiKeyInput.type = reveal ? "text" : "password";
+  toggleKeyButton.textContent = reveal ? "Ẩn" : "Hiện";
+  toggleKeyButton.setAttribute("aria-label", reveal ? "Ẩn API key" : "Hiện API key");
+  toggleKeyButton.title = reveal ? "Ẩn API key" : "Hiện API key";
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
   const saved = await chrome.storage.local.get(["geminiApiKey", "geminiModel"]);
