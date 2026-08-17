@@ -86,6 +86,16 @@
       if (!answer) return;
 
       answer.classList.add("ai-study-helper-suggested");
+
+      // Tự động tích radio / checkbox tương ứng
+      const input = answer.querySelector("input[type='radio'], input[type='checkbox']");
+      if (input && !input.checked) {
+        input.dataset.aiStudyHelperSelected = "true";
+        input.click();
+        // Phát thêm sự kiện change để đảm bảo framework phía trang nhận được
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
       const header = node.querySelector(".header") || node;
       const badge = document.createElement("span");
       badge.className = "ai-study-helper-badge";
@@ -95,6 +105,14 @@
   }
 
   function clearSuggestedAnswers() {
+    // Bỏ chọn các radio/checkbox mà extension đã tự tích trước đó
+    document.querySelectorAll("input[data-ai-study-helper-selected]").forEach((input) => {
+      delete input.dataset.aiStudyHelperSelected;
+      if (input.checked) {
+        input.checked = false;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
     document.querySelectorAll(".ai-study-helper-suggested")
       .forEach((node) => node.classList.remove("ai-study-helper-suggested"));
     document.querySelectorAll(".ai-study-helper-badge")
