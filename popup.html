@@ -8,11 +8,34 @@
   </head>
   <body>
     <main>
-      <h1>AI Study Helper</h1>
-      <p>Phân tích các câu hỏi đang hiển thị và đưa ra gợi ý, không tự chọn đáp án.</p>
-      <button id="analyze" type="button">Phân tích trang này</button>
-      <button id="settings" class="secondary" type="button">Cài đặt API</button>
+      <header class="hero">
+        <img src="icons/icon128.png" alt="" width="48" height="48">
+        <div>
+          <p class="eyebrow">TRỢ LÝ HỌC TẬP AI</p>
+          <h1>AI Study Helper</h1>
+        </div>
+      </header>
+
+      <section class="intro">
+        <h2>Gợi ý đáp án ngay trên trang</h2>
+        <p>AI đọc các câu hỏi đang hiển thị, phân tích theo thứ tự và làm nổi bật lựa chọn đề xuất để bạn kiểm tra.</p>
+      </section>
+
+      <div id="apiState" class="api-state checking">
+        <span class="state-dot"></span>
+        <span>Đang kiểm tra cấu hình…</span>
+      </div>
+
+      <button id="analyze" class="primary" type="button" disabled>
+        <span class="button-icon">✦</span>
+        <span>Phân tích trang này</span>
+      </button>
+      <button id="settings" class="secondary" type="button">
+        <span>Cài đặt Gemini API</span>
+        <span aria-hidden="true">›</span>
+      </button>
       <p id="status" role="status"></p>
+      <p class="privacy">Không tự chọn hoặc gửi câu trả lời.</p>
     </main>
     <script src="popup.js"></script>
   </body>

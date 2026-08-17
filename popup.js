@@ -1,6 +1,19 @@
 const analyzeButton = document.querySelector("#analyze");
 const settingsButton = document.querySelector("#settings");
 const status = document.querySelector("#status");
+const apiState = document.querySelector("#apiState");
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const { geminiApiKey, geminiModel } = await chrome.storage.local.get(["geminiApiKey", "geminiModel"]);
+  if (geminiApiKey && geminiModel) {
+    apiState.className = "api-state ready";
+    apiState.lastElementChild.textContent = `Sẵn sàng · ${geminiModel}`;
+    analyzeButton.disabled = false;
+    return;
+  }
+  apiState.className = "api-state missing";
+  apiState.lastElementChild.textContent = "Chưa cấu hình Gemini API";
+});
 
 settingsButton.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
