@@ -1,9 +1,7 @@
 (() => {
-  if (globalThis.__aiStudyHelperLoaded) return;
-  globalThis.__aiStudyHelperLoaded = true;
-
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type !== "START_ANALYSIS") return;
+    if (!chrome.runtime?.id) return;
 
     const questions = extractQuestions();
     if (!questions.length) {
@@ -13,21 +11,37 @@
     }
 
     showPanel("AI đang phân tích…", `Đã tìm thấy ${questions.length} câu hỏi.`, true);
-    chrome.runtime.sendMessage({ type: "ANALYZE_QUESTIONS", questions }, (response) => {
-      if (chrome.runtime.lastError) {
-        showPanel("Có lỗi xảy ra", chrome.runtime.lastError.message, false);
-        return;
-      }
-      if (!response?.ok) {
-        showPanel("Có lỗi xảy ra", response?.error || "Không nhận được phản hồi.", false);
-        return;
-      }
-      highlightSuggestedAnswers(response.result);
-      showPanel("Gợi ý từ AI", response.result, false);
-    });
+    sendToBackgroundWithRetry({ type: "ANALYZE_QUESTIONS", questions })
+      .then((response) => {
+        if (!response?.ok) throw new Error(response?.error || "Không nhận được phản hồi.");
+        highlightSuggestedAnswers(response.result);
+        showPanel("Gợi ý từ AI", response.result, false);
+      })
+      .catch((error) => {
+        const invalidated = /context invalidated/i.test(error.message);
+        const message = invalidated
+          ? "Extension vừa được cập nhật. Hãy tải lại trang một lần rồi phân tích lại."
+          : error.message;
+        showPanel("Có lỗi xảy ra", message, false);
+      });
 
     sendResponse({ ok: true, count: questions.length });
   });
+
+  async function sendToBackgroundWithRetry(message, attempts = 3) {
+    let lastError;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        return await chrome.runtime.sendMessage(message);
+      } catch (error) {
+        lastError = error;
+        const retryable = /receiving end does not exist|could not establish connection/i.test(error.message);
+        if (!retryable || attempt === attempts) break;
+        await new Promise((resolve) => setTimeout(resolve, attempt * 150));
+      }
+    }
+    throw lastError || new Error("Không thể kết nối với extension.");
+  }
 
   function extractQuestions() {
     const canvas = extractCanvasQuestions();

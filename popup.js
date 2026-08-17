@@ -12,14 +12,7 @@ analyzeButton.addEventListener("click", async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error("Không tìm thấy tab đang mở.");
 
-    let response;
-    try {
-      response = await chrome.tabs.sendMessage(tab.id, { type: "START_ANALYSIS" });
-    } catch (error) {
-      if (!String(error).includes("Receiving end does not exist")) throw error;
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
-      response = await chrome.tabs.sendMessage(tab.id, { type: "START_ANALYSIS" });
-    }
+    const response = await sendToTabWithRecovery(tab.id);
 
     if (!response?.ok) throw new Error(response?.error || "Không thể phân tích trang.");
     window.close();
@@ -29,3 +22,14 @@ analyzeButton.addEventListener("click", async () => {
     analyzeButton.disabled = false;
   }
 });
+
+async function sendToTabWithRecovery(tabId) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, { type: "START_ANALYSIS" });
+  } catch (error) {
+    const disconnected = /Receiving end does not exist|Could not establish connection/i.test(error.message);
+    if (!disconnected) throw error;
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+    return chrome.tabs.sendMessage(tabId, { type: "START_ANALYSIS" });
+  }
+}
