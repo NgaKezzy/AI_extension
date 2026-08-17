@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     resetModelPicker("Nhập API key để tải model");
     return;
   }
-  await loadAndSelectBestModel(saved.geminiApiKey, true);
+  await loadAndSelectBestModel(saved.geminiApiKey, true, saved.geminiModel);
 });
 
 apiKeyInput.addEventListener("input", () => {
@@ -50,7 +50,7 @@ modelInput.addEventListener("change", async () => {
   status.textContent = `Đã chuyển sang ${geminiModel}.`;
 });
 
-async function loadAndSelectBestModel(apiKey, autoSave) {
+async function loadAndSelectBestModel(apiKey, autoSave, preferredModel = "") {
   if (!apiKey) {
     resetModelPicker("Nhập API key để tải model");
     status.textContent = "Hãy nhập API key.";
@@ -66,13 +66,16 @@ async function loadAndSelectBestModel(apiKey, autoSave) {
     if (!response?.ok) throw new Error(response?.error || "Không thể tải danh sách model.");
     const models = response.models.filter(isSuitableTextModel);
     if (!models.length) throw new Error("API key này không có model Gemini phù hợp để phân tích văn bản.");
-    const best = [...models].sort((a, b) => modelScore(b) - modelScore(a))[0];
+    const best = models.find((model) => model.id === preferredModel) ||
+      [...models].sort((a, b) => modelScore(b) - modelScore(a))[0];
     setModels(models, best.id);
     if (autoSave) {
       await chrome.storage.local.set({ geminiApiKey: apiKey, geminiModel: best.id });
       await chrome.storage.local.remove(["openaiApiKey", "openaiModel"]);
     }
-    status.textContent = `Đã tự chọn model mạnh và mới nhất: ${best.label} (${best.id}).`;
+    status.textContent = preferredModel && best.id === preferredModel
+      ? `Đang sử dụng model đã lưu: ${best.label} (${best.id}).`
+      : `Đã tự chọn model mạnh và mới nhất: ${best.label} (${best.id}).`;
   } catch (error) {
     if (sequence !== loadSequence) return;
     resetModelPicker("Không tải được model");

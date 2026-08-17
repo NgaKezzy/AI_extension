@@ -40,7 +40,7 @@ async function listGeminiModels(providedApiKey) {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-async function analyzeQuestions(questions) {
+async function analyzeQuestions(questions, attemptedModels = new Set()) {
   if (!Array.isArray(questions) || questions.length === 0) {
     throw new Error("Không tìm thấy câu hỏi nào trên trang.");
   }
@@ -57,6 +57,7 @@ async function analyzeQuestions(questions) {
   }
 
   const resolvedModel = await resolveModelId(geminiModel, geminiApiKey);
+  attemptedModels.add(resolvedModel);
   const model = encodeURIComponent(resolvedModel);
   const response = await fetch(`${GEMINI_BASE_URL}/${model}:generateContent`, {
     method: "POST",
@@ -88,12 +89,44 @@ async function analyzeQuestions(questions) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = payload?.error?.message || `Gemini API trả về lỗi ${response.status}.`;
+    const quotaExceeded = response.status === 429 || /quota exceeded|rate limit/i.test(detail);
+    if (quotaExceeded && attemptedModels.size < 3) {
+      const models = await listGeminiModels(geminiApiKey).catch(() => []);
+      const fallback = findQuotaFallback(models, attemptedModels);
+      if (fallback) {
+        await chrome.storage.local.set({ geminiModel: fallback.id });
+        return analyzeQuestions(questions, attemptedModels);
+      }
+    }
+    if (quotaExceeded) {
+      throw new Error("Gemini đã hết quota cho các model khả dụng. Hãy chờ hết thời gian giới hạn, dùng API key khác hoặc bật thanh toán trong Google AI Studio.");
+    }
     throw new Error(detail);
   }
 
   const text = extractGeminiText(payload);
   if (!text) throw new Error("API không trả về nội dung có thể hiển thị.");
   return text;
+}
+
+function findQuotaFallback(models, attemptedModels) {
+  return models
+    .filter((model) => {
+      const value = `${model.id} ${model.label}`.toLowerCase();
+      return value.includes("flash") &&
+        !/(image|imagen|tts|audio|live)/.test(value) &&
+        !attemptedModels.has(model.id);
+    })
+    .sort((a, b) => fallbackScore(b) - fallbackScore(a))[0];
+}
+
+function fallbackScore(model) {
+  const value = `${model.id} ${model.label}`.toLowerCase();
+  let score = /flash[- ]lite/.test(value) ? 10000 : 20000;
+  const version = value.match(/gemini[- ]?(\d+)(?:\.(\d+))?/);
+  if (version) score += Number(version[1]) * 100 + Number(version[2] || 0);
+  if (!/(preview|experimental|exp)/.test(value)) score += 1000;
+  return score;
 }
 
 async function resolveModelId(configuredModel, apiKey) {

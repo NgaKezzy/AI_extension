@@ -6,6 +6,8 @@ Sau khi nhận kết quả, extension tô nổi lựa chọn được AI đề x
 
 Khi người dùng nhập xong API key, extension tự tải danh sách model mà key đó được phép dùng, ưu tiên model Pro mạnh nhất và phiên bản mới nhất, rồi tự lưu lựa chọn. Khi chưa có key, danh sách model bị khóa để tránh hiển thị model không khả dụng.
 
+Nếu model Pro trả lỗi hết quota, extension tự thử tối đa hai model Flash/Flash-Lite phù hợp và lưu model dự phòng thành công để dùng cho những lần sau.
+
 ## Cài đặt
 
 1. Mở `chrome://extensions`.
