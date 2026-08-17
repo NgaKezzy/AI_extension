@@ -2,6 +2,8 @@
 
 Extension Chrome Manifest V3 đọc câu hỏi đang hiển thị, gửi nội dung đến Gemini API và hiện đáp án đề xuất ngắn gọn dạng `Câu 1: B` trong một bảng nổi. Extension không tự chọn và không nộp đáp án.
 
+Sau khi nhận kết quả, extension tô nổi lựa chọn được AI đề xuất và gắn nhãn bên cạnh câu hỏi. Việc này chỉ thay đổi giao diện; radio vẫn do người dùng tự chọn.
+
 Model mặc định là `gemini-3.7-flash`. Bạn vẫn có thể tải danh sách model thực tế của API key và chọn model khác trong trang cài đặt.
 
 ## Cài đặt

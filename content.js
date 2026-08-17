@@ -22,6 +22,7 @@
         showPanel("Có lỗi xảy ra", response?.error || "Không nhận được phản hồi.", false);
         return;
       }
+      highlightSuggestedAnswers(response.result);
       showPanel("Gợi ý từ AI", response.result, false);
     });
 
@@ -35,7 +36,7 @@
   }
 
   function extractCanvasQuestions() {
-    const nodes = document.querySelectorAll(".question, [data-question-id], .quiz_sortable");
+    const nodes = getCanvasQuestionNodes();
     return uniqueQuestions([...nodes].map((node, index) => {
       const promptNode = node.querySelector(".question_text, .question-text, legend, h2, h3");
       const choices = [...node.querySelectorAll(".answer, .answer_label, label")]
@@ -44,6 +45,46 @@
       const prompt = cleanText(promptNode) || cleanText(node);
       return { number: index + 1, prompt: stripChoices(prompt, choices), choices };
     }));
+  }
+
+  function getCanvasQuestionNodes() {
+    const exact = document.querySelectorAll(".display_question.question");
+    if (exact.length) return exact;
+    return document.querySelectorAll("[data-question-id], .quiz_sortable.question_holder, .question");
+  }
+
+  function highlightSuggestedAnswers(result) {
+    clearSuggestedAnswers();
+    const suggestions = new Map();
+    const pattern = /Câu\s*(\d+)\s*:\s*([A-E])/giu;
+    for (const match of result.matchAll(pattern)) {
+      suggestions.set(Number(match[1]), match[2].toUpperCase());
+    }
+
+    const nodes = [...getCanvasQuestionNodes()];
+    nodes.forEach((node, index) => {
+      const letter = suggestions.get(index + 1);
+      if (!letter) return;
+
+      const answerIndex = letter.charCodeAt(0) - 65;
+      const answers = [...node.querySelectorAll(".answers .answer")];
+      const answer = answers[answerIndex];
+      if (!answer) return;
+
+      answer.classList.add("ai-study-helper-suggested");
+      const header = node.querySelector(".header") || node;
+      const badge = document.createElement("span");
+      badge.className = "ai-study-helper-badge";
+      badge.textContent = `AI đề xuất: ${letter}`;
+      header.appendChild(badge);
+    });
+  }
+
+  function clearSuggestedAnswers() {
+    document.querySelectorAll(".ai-study-helper-suggested")
+      .forEach((node) => node.classList.remove("ai-study-helper-suggested"));
+    document.querySelectorAll(".ai-study-helper-badge")
+      .forEach((node) => node.remove());
   }
 
   function extractGenericQuestions() {

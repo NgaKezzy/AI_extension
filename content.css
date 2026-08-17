@@ -3,3 +3,5 @@
 #ai-study-helper-panel header button { border: 0; background: transparent; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
 #ai-study-helper-panel .ai-study-helper-body { max-height: calc(100vh - 95px); overflow: auto; padding: 16px; white-space: pre-wrap; user-select: text; }
 #ai-study-helper-panel .ai-study-helper-body.loading { color: #526078; }
+.ai-study-helper-suggested { position: relative !important; border: 2px solid #315efb !important; border-radius: 8px !important; background: #eef3ff !important; box-shadow: 0 0 0 3px #315efb1f !important; }
+.ai-study-helper-badge { display: inline-block !important; float: right !important; margin: 0 8px !important; padding: 3px 9px !important; border-radius: 999px !important; background: #315efb !important; color: white !important; font: 700 12px/1.5 system-ui, sans-serif !important; }
