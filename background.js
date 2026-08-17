@@ -27,7 +27,8 @@ async function listGeminiModels(providedApiKey) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload?.error?.message || `Không thể tải danh sách model (${response.status}).`);
+    const detail = payload?.error?.message || `Không thể tải danh sách model (${response.status}).`;
+    throw new Error(friendlyGeminiError(detail, response.status));
   }
 
   return (payload.models || [])
@@ -101,12 +102,25 @@ async function analyzeQuestions(questions, attemptedModels = new Set()) {
     if (quotaExceeded) {
       throw new Error("Gemini đã hết quota cho các model khả dụng. Hãy chờ hết thời gian giới hạn, dùng API key khác hoặc bật thanh toán trong Google AI Studio.");
     }
-    throw new Error(detail);
+    throw new Error(friendlyGeminiError(detail, response.status));
   }
 
   const text = extractGeminiText(payload);
   if (!text) throw new Error("API không trả về nội dung có thể hiển thị.");
   return text;
+}
+
+function friendlyGeminiError(detail, status) {
+  if (/project has been denied access/i.test(detail)) {
+    return "Dự án Google của API key này đã bị từ chối truy cập Gemini. Hãy tạo API key bằng tài khoản Google cá nhân trong một project mới tại Google AI Studio; nếu vẫn lỗi, chủ tài khoản cần liên hệ Google Support. Tài khoản trường học/cơ quan có thể bị quản trị viên giới hạn.";
+  }
+  if (/api key not valid|invalid api key/i.test(detail)) {
+    return "Gemini API key không hợp lệ. Hãy tạo key mới trong Google AI Studio và dán lại toàn bộ key.";
+  }
+  if (status === 403 || /permission denied|permission_denied/i.test(detail)) {
+    return "API key không có quyền sử dụng Gemini API. Hãy kiểm tra project, điều khoản sử dụng, giới hạn API key hoặc thử project mới trong Google AI Studio.";
+  }
+  return detail;
 }
 
 function findQuotaFallback(models, attemptedModels) {
