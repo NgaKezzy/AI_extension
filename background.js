@@ -1,4 +1,5 @@
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const MAX_MODEL_ATTEMPTS = 5;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LIST_GEMINI_MODELS") {
@@ -92,10 +93,12 @@ async function analyzeQuestions(questions, attemptedModels = new Set()) {
     const detail = payload?.error?.message || `Gemini API trả về lỗi ${response.status}.`;
     const quotaExceeded = response.status === 429 || /quota exceeded|rate limit/i.test(detail);
     const temporarilyBusy = response.status === 503 ||
+      response.status >= 500 ||
       /high demand|overloaded|temporarily unavailable|try again later|unavailable/i.test(detail);
-    if ((quotaExceeded || temporarilyBusy) && attemptedModels.size < 3) {
+    const modelUnavailable = /model .*not found|not found for api version|not supported|unsupported model/i.test(detail);
+    if ((quotaExceeded || temporarilyBusy || modelUnavailable) && attemptedModels.size < MAX_MODEL_ATTEMPTS) {
       const models = await listGeminiModels(geminiApiKey).catch(() => []);
-      const fallback = findQuotaFallback(models, attemptedModels);
+      const fallback = findFallbackModel(models, attemptedModels);
       if (fallback) {
         await chrome.storage.local.set({ geminiModel: fallback.id });
         return analyzeQuestions(questions, attemptedModels);
@@ -105,7 +108,10 @@ async function analyzeQuestions(questions, attemptedModels = new Set()) {
       throw new Error("Gemini đã hết quota cho các model khả dụng. Hãy chờ hết thời gian giới hạn, dùng API key khác hoặc bật thanh toán trong Google AI Studio.");
     }
     if (temporarilyBusy) {
-      throw new Error("Model Gemini hiện đang quá tải tạm thời. Hãy thử lại sau vài phút hoặc chọn một model Flash/Flash-Lite khác trong Cài đặt của extension.");
+      throw new Error("Các model Gemini khả dụng đang quá tải tạm thời. Extension đã thử tự đổi model nhưng chưa thành công, hãy thử lại sau vài phút.");
+    }
+    if (modelUnavailable) {
+      throw new Error("Model Gemini đã lưu không còn khả dụng. Hãy mở Cài đặt và bấm Tải lại để chọn model mới.");
     }
     throw new Error(friendlyGeminiError(detail, response.status));
   }
@@ -128,12 +134,12 @@ function friendlyGeminiError(detail, status) {
   return detail;
 }
 
-function findQuotaFallback(models, attemptedModels) {
+function findFallbackModel(models, attemptedModels) {
   return models
     .filter((model) => {
       const value = `${model.id} ${model.label}`.toLowerCase();
-      return value.includes("flash") &&
-        !/(image|imagen|tts|audio|live)/.test(value) &&
+      return value.includes("gemini") &&
+        !/(embedding|embed|image|imagen|tts|audio|live|robotics|computer.use|aqa)/.test(value) &&
         !attemptedModels.has(model.id);
     })
     .sort((a, b) => fallbackScore(b) - fallbackScore(a))[0];

@@ -4,9 +4,9 @@ Extension Chrome Manifest V3 đọc câu hỏi đang hiển thị, gửi nội d
 
 Sau khi nhận kết quả, extension tô nổi lựa chọn được AI đề xuất và gắn nhãn bên cạnh câu hỏi. Việc này chỉ thay đổi giao diện; radio vẫn do người dùng tự chọn.
 
-Khi người dùng nhập xong API key, extension tự tải danh sách model mà key đó được phép dùng, ưu tiên model Pro mạnh nhất và phiên bản mới nhất, rồi tự lưu lựa chọn. Khi chưa có key, danh sách model bị khóa để tránh hiển thị model không khả dụng.
+Khi người dùng nhập xong API key, extension tự tải danh sách model mà key đó được phép dùng, ưu tiên model mạnh và mới nhất, rồi tự lưu lựa chọn. Khi chưa có key, danh sách model bị khóa để tránh hiển thị model không khả dụng.
 
-Nếu model Pro trả lỗi hết quota, extension tự thử tối đa hai model Flash/Flash-Lite phù hợp và lưu model dự phòng thành công để dùng cho những lần sau.
+Nếu model đang dùng trả lỗi quota, rate limit, quá tải tạm thời hoặc không còn khả dụng, extension tự thử tối đa 5 model Gemini phù hợp và lưu model dự phòng thành công để dùng cho những lần sau.
 
 ## Cài đặt
 

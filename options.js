@@ -71,7 +71,7 @@ async function loadAndSelectBestModel(apiKey, autoSave, preferredModel = "") {
     setModels(models, best.id);
     if (autoSave) {
       await chrome.storage.local.set({ geminiApiKey: apiKey, geminiModel: best.id });
-      await chrome.storage.local.remove(["openaiApiKey", "openaiModel"]);
+      await chrome.storage.local.remove(["aiProvider", "deepseekApiKey", "deepseekModel", "openaiApiKey", "openaiModel"]);
     }
     status.textContent = preferredModel && best.id === preferredModel
       ? `Đang sử dụng model đã lưu: ${best.label} (${best.id}).`
@@ -137,6 +137,7 @@ document.querySelector("#save").addEventListener("click", async () => {
     return;
   }
   await chrome.storage.local.set({ geminiApiKey, geminiModel });
+  await chrome.storage.local.remove(["aiProvider", "deepseekApiKey", "deepseekModel", "openaiApiKey", "openaiModel"]);
   status.textContent = "Đã lưu API key và model.";
 });
 
