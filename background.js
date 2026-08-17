@@ -91,7 +91,9 @@ async function analyzeQuestions(questions, attemptedModels = new Set()) {
   if (!response.ok) {
     const detail = payload?.error?.message || `Gemini API trả về lỗi ${response.status}.`;
     const quotaExceeded = response.status === 429 || /quota exceeded|rate limit/i.test(detail);
-    if (quotaExceeded && attemptedModels.size < 3) {
+    const temporarilyBusy = response.status === 503 ||
+      /high demand|overloaded|temporarily unavailable|try again later|unavailable/i.test(detail);
+    if ((quotaExceeded || temporarilyBusy) && attemptedModels.size < 3) {
       const models = await listGeminiModels(geminiApiKey).catch(() => []);
       const fallback = findQuotaFallback(models, attemptedModels);
       if (fallback) {
@@ -101,6 +103,9 @@ async function analyzeQuestions(questions, attemptedModels = new Set()) {
     }
     if (quotaExceeded) {
       throw new Error("Gemini đã hết quota cho các model khả dụng. Hãy chờ hết thời gian giới hạn, dùng API key khác hoặc bật thanh toán trong Google AI Studio.");
+    }
+    if (temporarilyBusy) {
+      throw new Error("Model Gemini hiện đang quá tải tạm thời. Hãy thử lại sau vài phút hoặc chọn một model Flash/Flash-Lite khác trong Cài đặt của extension.");
     }
     throw new Error(friendlyGeminiError(detail, response.status));
   }
