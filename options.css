@@ -4,6 +4,7 @@ main { max-width: 680px; margin: 48px auto; padding: 28px; background: white; bo
 h1 { margin-top: 0; }
 label { display: block; margin: 18px 0 6px; font-weight: 700; }
 input, select { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #c9d1df; border-radius: 9px; background: white; font: inherit; }
+select:disabled { background: #f1f3f7; color: #7a8497; cursor: not-allowed; }
 .model-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 small { display: block; margin-top: 7px; color: #657087; }
 .actions { display: flex; gap: 10px; margin-top: 20px; }

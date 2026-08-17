@@ -1,63 +1,138 @@
 const apiKeyInput = document.querySelector("#apiKey");
 const modelInput = document.querySelector("#model");
 const status = document.querySelector("#status");
-let savedModel = "gemini-3.7-flash";
+const refreshButton = document.querySelector("#refreshModels");
+let inputTimer;
+let loadSequence = 0;
 
 document.addEventListener("DOMContentLoaded", async () => {
   const saved = await chrome.storage.local.get(["geminiApiKey", "geminiModel"]);
   apiKeyInput.value = saved.geminiApiKey || "";
-  savedModel = saved.geminiModel || "gemini-3.7-flash";
-  setModels([], savedModel);
+  if (!saved.geminiApiKey) {
+    resetModelPicker("Nhập API key để tải model");
+    return;
+  }
+  await loadAndSelectBestModel(saved.geminiApiKey, true);
 });
 
-document.querySelector("#refreshModels").addEventListener("click", async () => {
-  const button = document.querySelector("#refreshModels");
-  button.disabled = true;
-  status.textContent = "Đang tải danh sách model từ Gemini API…";
+apiKeyInput.addEventListener("input", () => {
+  clearTimeout(inputTimer);
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) {
+    loadSequence += 1;
+    resetModelPicker("Nhập API key để tải model");
+    status.textContent = "";
+    return;
+  }
+  resetModelPicker("Đang chờ bạn nhập xong…");
+  status.textContent = "Sẽ tự động kiểm tra API key và tải model…";
+  inputTimer = setTimeout(() => loadAndSelectBestModel(apiKey, true), 800);
+});
+
+refreshButton.addEventListener("click", () => {
+  loadAndSelectBestModel(apiKeyInput.value.trim(), true);
+});
+
+modelInput.addEventListener("change", async () => {
+  const geminiApiKey = apiKeyInput.value.trim();
+  const geminiModel = modelInput.value;
+  if (!geminiApiKey || !geminiModel) return;
+  await chrome.storage.local.set({ geminiApiKey, geminiModel });
+  status.textContent = `Đã chuyển sang ${geminiModel}.`;
+});
+
+async function loadAndSelectBestModel(apiKey, autoSave) {
+  if (!apiKey) {
+    resetModelPicker("Nhập API key để tải model");
+    status.textContent = "Hãy nhập API key.";
+    return;
+  }
+  const sequence = ++loadSequence;
+  refreshButton.disabled = true;
+  modelInput.disabled = true;
+  status.textContent = "Đang kiểm tra API key và tải model…";
   try {
-    const response = await chrome.runtime.sendMessage({
-      type: "LIST_GEMINI_MODELS",
-      apiKey: apiKeyInput.value.trim()
-    });
+    const response = await chrome.runtime.sendMessage({ type: "LIST_GEMINI_MODELS", apiKey });
+    if (sequence !== loadSequence) return;
     if (!response?.ok) throw new Error(response?.error || "Không thể tải danh sách model.");
-    if (!response.models.length) throw new Error("API key này không có model hỗ trợ generateContent.");
-    setModels(response.models, modelInput.value || savedModel);
-    status.textContent = `Đã tìm thấy ${response.models.length} model khả dụng.`;
+    const models = response.models.filter(isSuitableTextModel);
+    if (!models.length) throw new Error("API key này không có model Gemini phù hợp để phân tích văn bản.");
+    const best = [...models].sort((a, b) => modelScore(b) - modelScore(a))[0];
+    setModels(models, best.id);
+    if (autoSave) {
+      await chrome.storage.local.set({ geminiApiKey: apiKey, geminiModel: best.id });
+      await chrome.storage.local.remove(["openaiApiKey", "openaiModel"]);
+    }
+    status.textContent = `Đã tự chọn model mạnh và mới nhất: ${best.label} (${best.id}).`;
   } catch (error) {
+    if (sequence !== loadSequence) return;
+    resetModelPicker("Không tải được model");
     status.textContent = error.message;
   } finally {
-    button.disabled = false;
+    if (sequence === loadSequence) refreshButton.disabled = !apiKeyInput.value.trim();
   }
-});
+}
+
+function isSuitableTextModel(model) {
+  const value = `${model.id} ${model.label}`.toLowerCase();
+  return value.includes("gemini") &&
+    !/(embedding|embed|image|imagen|tts|audio|live|robotics|computer.use|aqa)/.test(value);
+}
+
+function modelScore(model) {
+  const value = `${model.id} ${model.label}`.toLowerCase();
+  let score = 0;
+  if (/\bpro\b/.test(value)) score += 100000;
+  else if (/flash(?![- ]lite)/.test(value)) score += 60000;
+  else if (/flash[- ]lite/.test(value)) score += 40000;
+  const version = value.match(/gemini[- ]?(\d+)(?:\.(\d+))?/);
+  if (version) score += (Number(version[1]) * 100 + Number(version[2] || 0)) * 100;
+  if (!/(preview|experimental|exp)/.test(value)) score += 1000;
+  if (/latest/.test(value)) score += 100;
+  return score;
+}
 
 function setModels(models, selectedId) {
-  const list = [...models];
-  if (selectedId && !list.some((model) => model.id === selectedId)) {
-    list.unshift({ id: selectedId, label: `${selectedId} (đã lưu)` });
-  }
-  modelInput.replaceChildren(...list.map((model) => {
+  const sorted = [...models].sort((a, b) => modelScore(b) - modelScore(a));
+  modelInput.replaceChildren(...sorted.map((model) => {
     const option = document.createElement("option");
     option.value = model.id;
     option.textContent = model.label === model.id ? model.id : `${model.label} — ${model.id}`;
     return option;
   }));
-  modelInput.value = selectedId || list[0]?.id || "";
+  modelInput.value = selectedId;
+  modelInput.disabled = false;
+}
+
+function resetModelPicker(label) {
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = label;
+  modelInput.replaceChildren(option);
+  modelInput.disabled = true;
+  refreshButton.disabled = !apiKeyInput.value.trim();
 }
 
 document.querySelector("#save").addEventListener("click", async () => {
   const geminiApiKey = apiKeyInput.value.trim();
-  const geminiModel = modelInput.value.trim() || "gemini-3.7-flash";
+  const geminiModel = modelInput.value;
   if (!geminiApiKey) {
     status.textContent = "Hãy nhập API key.";
     return;
   }
+  if (!geminiModel) {
+    await loadAndSelectBestModel(geminiApiKey, true);
+    return;
+  }
   await chrome.storage.local.set({ geminiApiKey, geminiModel });
-  await chrome.storage.local.remove(["openaiApiKey", "openaiModel"]);
-  status.textContent = "Đã lưu cài đặt.";
+  status.textContent = "Đã lưu API key và model.";
 });
 
 document.querySelector("#clear").addEventListener("click", async () => {
-  await chrome.storage.local.remove("geminiApiKey");
+  clearTimeout(inputTimer);
+  loadSequence += 1;
+  await chrome.storage.local.remove(["geminiApiKey", "geminiModel"]);
   apiKeyInput.value = "";
-  status.textContent = "Đã xóa API key.";
+  resetModelPicker("Nhập API key để tải model");
+  status.textContent = "Đã xóa API key và model.";
 });

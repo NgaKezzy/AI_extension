@@ -1,12 +1,5 @@
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
-chrome.runtime.onInstalled.addListener(async () => {
-  const { geminiModel } = await chrome.storage.local.get("geminiModel");
-  if (!geminiModel || geminiModel === "gemini-2.5-flash") {
-    await chrome.storage.local.set({ geminiModel: "gemini-3.7-flash" });
-  }
-});
-
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LIST_GEMINI_MODELS") {
     listGeminiModels(message.apiKey)
@@ -52,11 +45,15 @@ async function analyzeQuestions(questions) {
     throw new Error("Không tìm thấy câu hỏi nào trên trang.");
   }
 
-  const { geminiApiKey, geminiModel = "gemini-3.7-flash" } =
+  const { geminiApiKey, geminiModel } =
     await chrome.storage.local.get(["geminiApiKey", "geminiModel"]);
 
   if (!geminiApiKey) {
     throw new Error("Bạn chưa cấu hình Gemini API key. Hãy mở Cài đặt của extension.");
+  }
+
+  if (!geminiModel) {
+    throw new Error("Chưa chọn model. Hãy mở Cài đặt để extension tự tải model phù hợp.");
   }
 
   const resolvedModel = await resolveModelId(geminiModel, geminiApiKey);

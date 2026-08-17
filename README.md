@@ -4,7 +4,7 @@ Extension Chrome Manifest V3 đọc câu hỏi đang hiển thị, gửi nội d
 
 Sau khi nhận kết quả, extension tô nổi lựa chọn được AI đề xuất và gắn nhãn bên cạnh câu hỏi. Việc này chỉ thay đổi giao diện; radio vẫn do người dùng tự chọn.
 
-Model mặc định là `gemini-3.7-flash`. Bạn vẫn có thể tải danh sách model thực tế của API key và chọn model khác trong trang cài đặt.
+Khi người dùng nhập xong API key, extension tự tải danh sách model mà key đó được phép dùng, ưu tiên model Pro mạnh nhất và phiên bản mới nhất, rồi tự lưu lựa chọn. Khi chưa có key, danh sách model bị khóa để tránh hiển thị model không khả dụng.
 
 ## Cài đặt
 
